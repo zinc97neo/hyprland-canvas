@@ -1,6 +1,10 @@
-use hyprland::shared::Address;
+use hyprland::{
+    dispatch::{Dispatch, DispatchType, Position, WindowIdentifier},
+    shared::Address,
+};
 
-struct WindowAddress(usize);
+#[derive(Clone, Copy)]
+pub struct WindowAddress(usize);
 impl WindowAddress {
     fn get(&self) -> usize {
         self.0
@@ -51,6 +55,16 @@ pub struct Window {
     owner: u8,
 }
 
+impl PartialEq for Window {
+    fn eq(&self, other: &Self) -> bool {
+        self.addr.0 == other.addr.0
+    }
+
+    fn ne(&self, other: &Self) -> bool {
+        self.addr.0 != other.addr.0
+    }
+}
+
 impl Window {
     pub fn new(addr: usize, pos: (i16, i16), size: (i16, i16), owner: u8) -> Self {
         Self {
@@ -71,8 +85,24 @@ impl Window {
             self.owner = o;
         }
     }
-    pub fn get(&self) -> ((i16, i16), (i16, i16)) {
-        (self.pos.get(), self.size.get())
+
+    pub fn get(&self) -> (usize, (i16, i16), (i16, i16)) {
+        (self.addr.get(), self.pos.get(), self.size.get())
+    }
+    pub fn set_hyprland_window(&self) {
+        let (_, pos, size) = self.get();
+        if let Err(e) = Dispatch::call(DispatchType::ResizeWindowPixel(
+            Position::Exact(size.0, size.1),
+            WindowIdentifier::Address(self.addr.into()),
+        )) {
+            eprintln!("{:?}", e);
+        }
+        if let Err(e) = Dispatch::call(DispatchType::MoveWindowPixel(
+            Position::Exact(pos.0, pos.1),
+            WindowIdentifier::Address(self.addr.into()),
+        )) {
+            eprintln!("{:?}", e);
+        }
     }
 }
 

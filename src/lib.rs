@@ -1,1 +1,2 @@
-mod window;
+mod canvas;
+pub mod window;
